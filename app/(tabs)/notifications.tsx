@@ -1,4 +1,5 @@
 import Loader from "@/components/Loader";
+import Notification from "@/components/Notification";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { styles } from "@/styles/notifications.styles";
@@ -20,17 +21,13 @@ export default function Notifications() {
 
       <FlatList
         data={notifications}
-        renderItem={({ item }) => <NotificationItem notification={item} />}
+        renderItem={({ item }) => <Notification notification={item} />}
         keyExtractor={(item) => item._id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}
       />
     </View>
   );
-}
-
-function NotificationItem({ notification }: any) {
-  return <View></View>;
 }
 
 function NoNotificationsFound() {
