@@ -196,6 +196,47 @@ export const getPostsByUser = query({
       .withIndex("by_user", (q) => q.eq("userId", args.userId || user._id))
       .collect();
 
-    return posts;
+    const postsWithInfo = await Promise.all(
+      posts.map(async (post) => {
+        const like = await ctx.db
+          .query("likes")
+          .withIndex("by_user_and_post", (q) =>
+            q.eq("userId", user._id).eq("postId", post._id)
+          )
+          .first();
+        return {
+          ...post,
+          isLiked: !!like,
+        };
+      })
+    );
+
+    return postsWithInfo;
+  },
+});
+
+export const getLikesByPost = query({
+  args: {
+    postId: v.id("posts"),
+  },
+  handler: async (ctx, args) => {
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_post", (q) => q.eq("postId", args.postId))
+      .collect();
+
+    const likesWithInfo = await Promise.all(
+      likes.map(async (like) => {
+        const user = await ctx.db.get(like.userId);
+
+        return {
+          ...like,
+          user: {
+            fullname: user!.fullname,
+            image: user!.image,
+          },
+        };
+      })
+    );
   },
 });

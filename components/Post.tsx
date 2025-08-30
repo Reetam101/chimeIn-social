@@ -10,8 +10,9 @@ import { formatDistanceToNow } from "date-fns";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import CommentsModal from "./CommentsModal";
+import LikesModal from "./LikesModal";
 
 type PostProps = {
   post: {
@@ -37,7 +38,7 @@ export default function Post({ post }: PostProps) {
   const [likesCount, setLikesCount] = useState(post.likes);
   const [commentsCount, setCommentsCount] = useState(post.comments);
   const [showComments, setShowComments] = useState(false);
-
+  const [showLikesModal, setShowLikesModal] = useState(false);
   const toggleLike = useMutation(api.posts.toggleLike);
 
   const toggleBookmark = useMutation(api.bookmarks.toggleBookmark);
@@ -143,11 +144,13 @@ export default function Post({ post }: PostProps) {
 
       {/* POST INFO */}
       <View style={styles.postInfo}>
-        <Text style={styles.likesText}>
-          {likesCount > 0
-            ? `${likesCount.toLocaleString()} likes`
-            : "Be the first to like"}
-        </Text>
+        <Pressable onPress={() => setShowLikesModal(true)}>
+          <Text style={styles.likesText}>
+            {likesCount > 0
+              ? `${likesCount.toLocaleString()} likes`
+              : "Be the first to like"}
+          </Text>
+        </Pressable>
         {post.caption && (
           <View style={styles.captionContainer}>
             <Text style={styles.captionUsername}>{post.author.username}</Text>
@@ -172,6 +175,11 @@ export default function Post({ post }: PostProps) {
         visible={showComments}
         onClose={() => setShowComments(false)}
         onCommentAdded={() => setCommentsCount((prev) => prev + 1)}
+      />
+      <LikesModal
+        postId={post._id}
+        visible={showLikesModal}
+        onClose={() => setShowLikesModal(false)}
       />
     </View>
   );
