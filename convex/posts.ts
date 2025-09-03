@@ -238,5 +238,46 @@ export const getLikesByPost = query({
         };
       })
     );
+    return likesWithInfo;
+  },
+});
+
+export const getPostById = query({
+  args: {
+    postId: v.id("posts"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const post = await ctx.db
+      .query("posts")
+      .withIndex("by_id", (q) => q.eq("_id", args.postId))
+      .unique();
+
+    const user = args.userId
+      ? await ctx.db.get(args.userId)
+      : await getAuthenticatedUser(ctx);
+    if (!user) throw new Error("User not found");
+
+    const currentUser = await getAuthenticatedUser(ctx);
+
+    const like = await ctx.db
+      .query("likes")
+      .withIndex("by_user_and_post", (q) =>
+        //@ts-ignore
+        q.eq("userId", currentUser._id).eq("postId", post._id)
+      )
+      .unique();
+    console.log(!!like);
+    return {
+      ...post,
+      user: {
+        username: user.username,
+        fullname: user.fullname,
+        image: user.image,
+        _id: user._id,
+        clerkId: user.clerkId,
+      },
+      isLiked: !!like,
+    };
   },
 });

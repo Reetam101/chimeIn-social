@@ -1,6 +1,7 @@
 // styles/profile.styles.ts
 import { COLORS } from "@/constants/theme";
 import { Dimensions, StyleSheet } from "react-native";
+import { heightPercentageToDP } from "react-native-responsive-screen";
 
 const { width, height } = Dimensions.get("window");
 
@@ -121,11 +122,11 @@ export const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundLight,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    minHeight: 400,
+    minHeight: heightPercentageToDP(60),
   },
   modalHeader: {
     flexDirection: "row",

@@ -1,22 +1,25 @@
-import CommentsModal from "@/components/CommentsModal";
 import Loader from "@/components/Loader";
+import PostModal from "@/components/PostModal";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { styles as postStyles } from "@/styles/feed.styles";
 import { styles } from "@/styles/profile.styles";
 import { useAuth } from "@clerk/clerk-expo";
-import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
-import { formatDistanceToNow } from "date-fns";
 import { Image } from "expo-image";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { heightPercentageToDP } from "react-native-responsive-screen";
@@ -46,28 +49,8 @@ const Profile = () => {
 
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const posts = useQuery(api.posts.getPostsByUser, {});
-
-  const [showComments, setShowComments] = useState(false);
-  const [likesCount, setLikesCount] = useState(selectedPost?.likes);
-  const [commentsCount, setCommentsCount] = useState(selectedPost?.comments);
-  const [isLiked, setIsLiked] = useState(selectedPost?.isLiked || false);
   const updateProfile = useMutation(api.users.updateProfile);
-  const toggleLike = useMutation(api.posts.toggleLike);
-  const handleLike = async () => {
-    try {
-      const newIsLiked = await toggleLike({ postId: selectedPost?._id! });
-      setIsLiked(newIsLiked);
-      setLikesCount((prev) => (newIsLiked ? prev! + 1 : prev! - 1));
-      // refetch the selectedPost
-    } catch (error) {
-      console.error("Error liking the post", error);
-    }
-  };
 
-  useEffect(() => {});
-
-  console.log(selectedPost);
-  console.log(isLiked);
   const handleSaveProfile = async () => {};
 
   if (!currentUser || posts === undefined) return <Loader />;
@@ -149,89 +132,57 @@ const Profile = () => {
         />
       </ScrollView>
 
-      {/* SELECTED IMAGE MODAL */}
+      {/* Edit profile modal */}
       <Modal
-        visible={!!selectedPost}
-        animationType="fade"
+        visible={isEditModalVisible}
+        animationType="slide"
         transparent={true}
-        onRequestClose={() => setSelectedPost(null)}
+        onRequestClose={() => setIsEditModalVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
-          {selectedPost && (
-            <View style={styles.postDetailContainer}>
-              <View style={styles.postDetailHeader}>
-                <TouchableOpacity onPress={() => setSelectedPost(null)}>
-                  <Ionicons name="close" size={24} color={COLORS.surface} />
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalContainer}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Profile</Text>
+                <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.white} />
                 </TouchableOpacity>
               </View>
 
-              <Image
-                source={selectedPost.imageUrl}
-                cachePolicy={"memory-disk"}
-                style={styles.postDetailImage}
-              />
-              {/* POST actions */}
-              <View style={postStyles.postActions}>
-                <View style={postStyles.postActionsLeft}>
-                  <TouchableOpacity onPress={handleLike}>
-                    <AntDesign
-                      name={isLiked ? "heart" : "hearto"}
-                      size={22}
-                      color={isLiked ? COLORS.primary : COLORS.white}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => {}}>
-                    <Ionicons
-                      name="chatbubble-outline"
-                      size={22}
-                      color={COLORS.white}
-                    />
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editedProfile.fullname}
+                  onChangeText={(text) =>
+                    setEditedProfile((prev) => ({ ...prev, fullname: text }))
+                  }
+                  placeholder={COLORS.grey}
+                />
               </View>
 
-              {/* POST INFO */}
-              <View style={postStyles.postInfo}>
-                <Text style={postStyles.likesText}>
-                  {likesCount! > 0
-                    ? `${likesCount?.toLocaleString()} likes`
-                    : "Be the first to like"}
-                </Text>
-                {selectedPost.caption && (
-                  <View style={postStyles.captionContainer}>
-                    <Text style={postStyles.captionUsername}>
-                      {currentUser.username}
-                    </Text>
-                    <Text style={postStyles.captionText}>
-                      {selectedPost.caption}
-                    </Text>
-                  </View>
-                )}
-
-                {selectedPost._creationTime > 0 && (
-                  <TouchableOpacity onPress={() => setShowComments(true)}>
-                    <Text style={postStyles.commentsText}>
-                      View all {selectedPost.comments} comments
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                <Text style={postStyles.timeAgo}>
-                  {formatDistanceToNow(selectedPost._creationTime, {
-                    addSuffix: true,
-                  })}
-                </Text>
+              <View>
+                <Text>Bio</Text>
+                <TextInput style={[styles.input, styles.bioInput]} />
               </View>
-
-              <CommentsModal
-                postId={selectedPost._id}
-                visible={showComments}
-                onClose={() => setShowComments(false)}
-                onCommentAdded={() => setCommentsCount((prev) => prev! + 1)}
-              />
             </View>
-          )}
-        </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </Modal>
+
+      {/* SELECTED IMAGE MODAL */}
+      {/*  */}
+      {selectedPost && (
+        <PostModal
+          postId={selectedPost?._id!}
+          userId={currentUser._id}
+          visible={selectedPost ? true : false}
+          onClose={() => setSelectedPost(null)}
+        />
+      )}
     </View>
   );
 };
